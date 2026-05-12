@@ -1,10 +1,18 @@
-# 🚀 Projet Docker WordPress Inception
+Inception — WordPress stack on Docker (Nginx TLS, MariaDB)
+Infrastructure Docker Compose déployant une stack WordPress accessible uniquement en HTTPS via un reverse proxy Nginx + TLS, avec base MariaDB et persistance des données via volumes.
 
-## 📁 Structure du projet
-```
+Projet École 42 — focus : conteneurisation, réseau Docker, persistance, et configuration TLS.
+
+Architecture (services)
+nginx : reverse proxy, terminaison TLS (port 443 uniquement)
+wordpress : PHP-FPM + configuration WordPress
+mariadb : base de données (réseau privé Docker)
+Communication inter-services via un réseau Docker dédié (ex: inception).
+
+Structure du projet
 inception/
 ├── Makefile
-├── .env
+├── .env                  # variables d’environnement (NE PAS versionner avec secrets)
 ├── README.md
 └── srcs/
     ├── docker-compose.yml
@@ -25,78 +33,41 @@ inception/
             │   └── 50-server.conf
             └── tools/
                 └── init.sh
-```
+Prérequis
+Linux
+Docker + Docker Compose
+make
+Installation & Run
+1) Ajouter le domaine local (si nécessaire)
+Exemple : wzeraig.42.fr (adapter au domaine défini dans .env)
 
-## 🛠️ Instructions d'utilisation
-
-### 1. Préparation de l'environnement
-```bash
-# Ajouter le domaine au fichier hosts
-sudo echo "127.0.0.1 wzeraig.42.fr" >> /etc/hosts
-
-# Se placer dans le dossier du projet
-cd /home/wzeraig/Documents/42/inception/
-```
-
-### 2. Lancement du projet
-```bash
-# Lancer tout le projet
+echo "127.0.0.1 wzeraig.42.fr" | sudo tee -a /etc/hosts
+2) Lancer la stack
 make all
+# ou
+make prepare   # crée les dossiers de données
+make build     # build les images
+# puis docker compose up (selon ton Makefile)
+3) Accéder au site
+Site : https://wzeraig.42.fr
+Admin WP : https://wzeraig.42.fr/wp-admin
+Les identifiants/mots de passe sont définis via variables d’environnement (.env) / scripts d’init. ⚠️ Évite de commiter des mots de passe en clair dans le dépôt public.
 
-# Ou en étapes séparées :
-make prepare  # Crée les dossiers de données
-make build    # Construit les images
-```
+Commandes utiles
+make down      # stop
+make purge     # supprime conteneurs/volumes/données (selon Makefile)
 
-### 3. Accès au site
-- **Site web** : https://wzeraig.42.fr
-- **Administration WordPress** : https://wzeraig.42.fr/wp-admin
-
-### 4. Comptes utilisateurs
-- **Admin** : Ara / 1234567890
-- **Contributeur** : correcteur / correcteur
-
-### 5. Commandes utiles
-```bash
-# Arrêter les conteneurs
-make down
-
-# Tout supprimer (conteneurs, volumes, données)
-make purge
-
-# Voir les conteneurs en cours
 docker ps
+Accès MariaDB :
 
-# Accéder à la base MariaDB
-docker exec -it mariadb mysql -u wzeraig -p
-```
+docker exec -it mariadb mysql -u <db_user> -p
+Sécurité / points d’attention
+HTTPS uniquement : exposition volontairement limitée au port 443 ; pas d’accès HTTP (80).
+TLS : certificat auto-signé (usage pédagogique/local).
+Isolation réseau : services interconnectés via un réseau Docker dédié.
+Secrets : les mots de passe doivent être fournis via .env (non versionné) / variables CI.
+Conformité projet 42 (rappels)
+Images custom (Dockerfile), pas d’images “prêtes à l’emploi” type DockerHub pour les services.
+Persistance via volumes / bind mount (ex: /home/<user>/data/).
+Base Debian Bullseye (selon la consigne du projet).
 
-### 6. Accès à la base de données
-```bash
-# Se connecter à MariaDB
-docker exec -it mariadb mysql -u wzeraig -p
-# Mot de passe : 123456789
-
-# Une fois connecté :
-USE wordpress;
-SHOW TABLES;
-SELECT user_login FROM wp_users;
-```
-
-## 🎯 Points clés pour l'évaluation
-
-1. **Docker Network** : Les conteneurs communiquent via le réseau `inception`
-2. **Volumes bind** : Données persistantes dans `/home/wzeraig/data/`
-3. **SSL/TLS** : Certificat auto-signé pour HTTPS (port 443 uniquement)
-4. **Modération** : Commentaires soumis à validation admin
-5. **Rôles** : Admin (Ara) et Contributeur (correcteur)
-6. **Images custom** : Toutes les images sont construites à partir de Dockerfile
-7. **Base stable** : Debian Bullseye utilisé partout
-
-## ⚠️ Important pour l'évaluation
-
-- Le site doit être accessible uniquement en HTTPS (port 443)
-- Aucun accès HTTP (port 80) ne doit fonctionner
-- Les données persistent après un redémarrage de la VM
-- WordPress est préconfigé (pas de page d'installation)
-- Tous les services utilisent des images custom (pas de DockerHub)
